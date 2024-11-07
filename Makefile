@@ -11,4 +11,4 @@ run:
 
 .PHONY: test
 test:
-	docker exec -it ${CONTAINER_NAME} python -m unittest discover -sq tests
+	docker exec -it ${CONTAINER_NAME} python -m unittest discover -s tests --quiet

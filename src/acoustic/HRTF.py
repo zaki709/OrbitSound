@@ -1,11 +1,15 @@
 import os
 import sys
 import re
+import pickle
 import pyaudio
 import numpy as np
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src')))
 from utils.config import configInit
+from acoustic.Processing import SpectrogramProcessing
 Conf = configInit()
+spec = SpectrogramProcessing()
 logger = Conf.setLogger(__name__)
 
 
@@ -38,6 +42,7 @@ class HRTF:
     def checkModel(self) -> None:
         if os.path.isdir(Conf.HRTFmodel):
             logger.info(f'{Conf.HRTFmodel} is found.')
+            self.getModelNameList()
         else:
             logger.error(f'{Conf.HRTFmodel} is not found.')
             exit(-1)
@@ -73,7 +78,51 @@ class HRTF:
         sorted_ind = [*range(len(self.elev))]
         sorted_ind.sort(key=lambda x: int(self.elev[x]))
         self.elev = [self.elev[i] for i in sorted_ind]
-        self.azimuth = [self.azim[i] for i in sorted_ind]
+        self.azimuth = [self.azimuth[i] for i in sorted_ind]
 
         self.Lpath = [self.Lpath[i] for i in sorted_ind]
         self.Rpath = [self.Rpath[i] for i in sorted_ind]
+    
+    def openData(self,path):
+        with open(path, 'r') as f:
+            tmp = f.read().split("\n")
+            data = []
+            for item in tmp:
+                if item is not "":
+                    data.append(float(item))
+        return np.array(data)
+
+    def convHRTF2Np(self):
+        for e,_ in enumerate(self.elev):
+            LaziData = []
+            RaziData = []
+            for a,_ in enumerate(self.azimuth[e]):
+                Lpath = self.Lpath[e][a]
+                Rpath = self.Rpath[e][a]
+                Ldata = spec.overlapAdderFFT(self.openData(Lpath))
+                Rdata = spec.overlapAdderFFT(self.openData(Rpath))
+                LaziData.append(Ldata)
+                RaziData.append(Rdata)
+            
+            self.hrtf[self.left].append(LaziData)
+            self.hrtf[self.right].append(RaziData)
+
+        self.saveData(self.hrtf,Conf.HRTFpath)
+        self.saveData(self.elev,Conf.Elevpath)
+        self.saveData(self.azimuth,Conf.Azimuthpath)
+        logger.info("SUCCESS: Save HRTF data")
+
+    def saveData(self,data,path):
+        try:
+            with open(path,'wb') as hrtf:
+                pickle.dump(data,hrtf)
+        except Exception as e:
+            logger.critical(e)
+
+    def readData(self,path):
+        try:
+            with open(path,'rb') as hrtf:
+                data = pickle.load(hrtf)
+        except Exception as e:
+            logger.critical(e)
+        return data
