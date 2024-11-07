@@ -8,3 +8,6 @@
 # data
 data/data02
 data/output/*
+
+# model
+model/*
