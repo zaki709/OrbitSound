@@ -1,0 +1,10 @@
+#env
+.venv
+.vscode
+
+# python
+**/__pycache__/**
+
+# data
+data/data02
+data/output/*

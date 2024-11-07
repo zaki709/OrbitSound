@@ -1,0 +1,13 @@
+version: '3'
+services:
+  python3:
+    environment:
+      - PULSE_SERVER=host.docker.internal
+    restart: always
+    build: .
+    container_name: 'python3'
+    working_dir: '/root/app'
+    tty: true
+    volumes:
+      - ./:/root/app
+      - ~/.config/pulse:/root/.config/pulse:ro
